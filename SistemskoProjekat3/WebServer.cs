@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Reactive;
+using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
@@ -37,18 +38,16 @@ namespace SistemskoProjekat3
                 listener.Prefixes.Add(prefix);
             }
 
-
             //this.responderMethod = responderMethod;
 
-            
+            listener.Start();
         }
 
-        public void Run()
+        private IObservable<HttpListenerContext> GetContextAsync()
         {
-            Console.WriteLine("Webserver je pokrenut...");
-            IObservable<HttpListenerContext> obs = Observable.Create<HttpListenerContext>(observer =>
+            return Observable.Create<HttpListenerContext>(observer =>
             {
-                listener.Start();
+                
                 Task.Run(async () =>
                 {
                     try
@@ -56,7 +55,20 @@ namespace SistemskoProjekat3
                         while (listener.IsListening)
                         {
                             var context = await listener.GetContextAsync();
-                            observer.OnNext(context);
+
+                            ThreadPoolScheduler.Instance.Schedule(() =>
+                            {
+                                try
+                                {
+                                    observer.OnNext(context);
+                                }
+                                catch (Exception ex)
+                                {
+                                    observer.OnError(ex);
+                                }
+
+                            });
+
                         }
                     }
                     catch (Exception ex)
@@ -65,8 +77,13 @@ namespace SistemskoProjekat3
                     }
                 });
                 return Disposable.Empty;
-            }); 
+            });
+        }
 
+        public void Run()
+        {
+            Console.WriteLine("Webserver je pokrenut...");
+            IObservable<HttpListenerContext> obs = this.GetContextAsync();
 
             //IObservable<HttpListenerContext> obs = listener.GetContextAsync().ToObservable();
             this.observableSubscription = obs.Subscribe(
@@ -75,7 +92,7 @@ namespace SistemskoProjekat3
                     HttpListenerRequest request = context.Request;
                     HttpListenerResponse response = context.Response;
 
-                    Console.WriteLine("Request: " + request.RawUrl);
+                    Console.WriteLine("Request: " + request.RawUrl + $", Thread: {Thread.CurrentThread.ManagedThreadId}" );
 
                     byte[] buf = Encoding.UTF8.GetBytes("Returning response");
                     response.ContentLength64 = buf.Length;
