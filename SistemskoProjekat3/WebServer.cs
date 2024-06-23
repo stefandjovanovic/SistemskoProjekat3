@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SistemskoProjekat3.Modules;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -16,29 +17,28 @@ namespace SistemskoProjekat3
     public class WebServer
     {
         private readonly HttpListener listener = new HttpListener();
-        //private readonly Func<HttpListenerRequest, Task<string>> responderMethod;
-        //private IObservable<HttpListenerContext>? httpListenerObservable;
+        private readonly Func<HttpListenerRequest, IObservable<Fixtures>> responderObservable;
         private IDisposable? observableSubscription;
 
 
-        public WebServer(/*Func<HttpListenerRequest Task<string>> responderMethod,*/ params string[] prefixes)
+        public WebServer(Func<HttpListenerRequest, IObservable<Fixtures>> responderMethod, params string[] prefixes)
         {
             if (prefixes == null || prefixes.Length == 0)
             {
                 throw new ArgumentException("URI ne sadrzi adekvatan broj parametara");
             }
 
-            //if (responderMethod == null)
-            //{
-            //    throw new ArgumentException("Potreban je odgovarajuci responderMethod");
-            //}
+            if (responderMethod == null)
+            {
+                throw new ArgumentException("Potreban je odgovarajuci responderMethod");
+            }
 
             foreach (string prefix in prefixes)
             {
                 listener.Prefixes.Add(prefix);
             }
 
-            //this.responderMethod = responderMethod;
+            this.responderObservable = responderMethod;
 
             listener.Start();
         }
@@ -85,23 +85,41 @@ namespace SistemskoProjekat3
             Console.WriteLine("Webserver je pokrenut...");
             IObservable<HttpListenerContext> obs = this.GetContextAsync();
 
-            //IObservable<HttpListenerContext> obs = listener.GetContextAsync().ToObservable();
             this.observableSubscription = obs.Subscribe(
                 context =>
                 {
                     HttpListenerRequest request = context.Request;
                     HttpListenerResponse response = context.Response;
 
-                    Console.WriteLine("Request: " + request.RawUrl + $", Thread: {Thread.CurrentThread.ManagedThreadId}" );
-
-                    byte[] buf = Encoding.UTF8.GetBytes("Returning response");
-                    response.ContentLength64 = buf.Length;
-                    response.OutputStream.Write(buf, 0, buf.Length);
-
-                    if (context != null)
+                    if (request.RawUrl == "/favicon.ico")
                     {
-                        context.Response.OutputStream.Close();
+                        return;
                     }
+
+                    this.responderObservable(request).Subscribe(
+                          fixture =>
+                          {
+                              Console.WriteLine("Vracanje podataka za: " + request.RawUrl);
+
+                              byte[] buf = Encoding.UTF8.GetBytes(fixture.ToString());
+                              response.ContentLength64 = buf.Length;
+                              response.OutputStream.Write(buf, 0, buf.Length);
+
+                              context.Response.OutputStream.Close();
+                          },
+                          err =>
+                          {
+                              Console.WriteLine("Greska za: " + request.RawUrl);
+
+                              byte[] buf = Encoding.UTF8.GetBytes(err.Message);
+                              response.ContentLength64 = buf.Length;
+                              response.OutputStream.Write(buf, 0, buf.Length);
+
+                              context.Response.OutputStream.Close();
+
+                              Console.WriteLine("Error: " + err.Message);
+                          });
+                    
 
                 },
                 exception =>

@@ -10,22 +10,21 @@ namespace ClientApp
     {
         static void Main(string[] args)
         {
-            // Lista fajlova
+            // Lista utakmica
             List<string> fileNames = new List<string> {
-                "lorem.txt",
-                "Lorem.bin",
-                "nijeFajl",
-                "nePostoji.txt",
-                "lorem.txt",
-                "lorem.bin",
-                "nePostoji.txt",
-                "proba.bin",
-                "proba.txt",
-                "proba1.txt",
-                "test.txt",
-                "nesto.txt" ,
-                "nekifajl.bin",
-                "proba.bin"
+                "19116497",
+                "19116467",
+                "19116470",
+                "19116472",
+                "19116468",
+                "19116498",
+                "19116497",
+                "19104334",
+                "19116469",
+                "19104335",
+                "19104336",
+                "19104337",
+                "19116485"
             };
 
             Thread[] threads = new Thread[fileNames.Count];
