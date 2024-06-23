@@ -12,7 +12,10 @@ namespace SistemskoProjekat3.Modules
         public string ?Name { get; set; }
         public DateTime StartingAt { get; set; }
         public string ?ResultInfo { get; set; }
-        public List<Player> ?PlayerList { get; set; }
+        public List<Player> ? LocalTeamPlayers { get; set; }
+        public List<Player>? VisitorTeamPlayers { get; set; }
+
+
 
         public override string ToString()
         {
@@ -23,16 +26,28 @@ namespace SistemskoProjekat3.Modules
                 result += $"Result: {ResultInfo}\n";
             }
 
-            result += "Players: \n";
+            
 
-            if (PlayerList != null)
+            if (LocalTeamPlayers != null && VisitorTeamPlayers != null)
             {
-                foreach (var player in PlayerList)
+                result += "Local team players: \n\n";
+
+                foreach (var player in LocalTeamPlayers)
                 {
                     result += $"{player.FirstName} {player.LastName}, " +
                         $"Shirt number: {player.ShirtNumber}, " +
                         $"Date of birth: {player.DateOfBirth.ToShortDateString()}, " +
-                        $"Countr: {player.Country}\n";
+                        $"Country: {player.Country}\n";
+                }
+
+                result += "\nVisitor team players: \n\n";
+
+                foreach (var player in VisitorTeamPlayers)
+                {
+                    result += $"{player.FirstName} {player.LastName}, " +
+                        $"Shirt number: {player.ShirtNumber}, " +
+                        $"Date of birth: {player.DateOfBirth.ToShortDateString()}, " +
+                        $"Country: {player.Country}\n";
                 }
             }
 

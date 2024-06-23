@@ -13,5 +13,6 @@ namespace SistemskoProjekat3.Modules
         public DateTime DateOfBirth { get; set; }
         public int ShirtNumber { get; set; }
         public string ?Country { get; set; }
+        public int TeamId { get; set; }
     }
 }
