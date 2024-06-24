@@ -74,11 +74,23 @@ namespace SistemskoProjekat3
             });
         }
 
+        private IObservable<HttpListenerContext> GetContextObservableFromAsync()
+        {
+            return Observable
+                .FromAsync(listener.GetContextAsync)
+                .ObserveOn(ThreadPoolScheduler.Instance)
+                .Repeat()
+                .TakeWhile( _ => listener.IsListening);
+        }
+
 
         public void Run()
         {
             Console.WriteLine("Webserver je pokrenut...");
-            IObservable<HttpListenerContext> obs = this.GetContextObservableFromTask();
+
+            IObservable<HttpListenerContext> obs = this.GetContextObservableFromAsync();
+
+            //IObservable<HttpListenerContext> obs = this.GetContextObservableFromTask();
 
             this.observableSubscription = obs.Subscribe(
                 context =>
@@ -92,6 +104,7 @@ namespace SistemskoProjekat3
                     }
 
                     this.fixtureService.GetFixturesObservable(request)
+                        .Take(1)
                         .Subscribe(
                           fixture =>
                           {
