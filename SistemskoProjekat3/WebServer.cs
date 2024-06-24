@@ -1,4 +1,5 @@
 ﻿using SistemskoProjekat3.Modules;
+using SistemskoProjekat3.Services;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -17,20 +18,15 @@ namespace SistemskoProjekat3
     public class WebServer
     {
         private readonly HttpListener listener = new HttpListener();
-        private readonly Func<HttpListenerRequest, IObservable<Fixtures>> responderObservable;
+        private FixtureService fixtureService;
         private IDisposable? observableSubscription;
 
 
-        public WebServer(Func<HttpListenerRequest, IObservable<Fixtures>> responderMethod, params string[] prefixes)
+        public WebServer(params string[] prefixes)
         {
             if (prefixes == null || prefixes.Length == 0)
             {
                 throw new ArgumentException("URI ne sadrzi adekvatan broj parametara");
-            }
-
-            if (responderMethod == null)
-            {
-                throw new ArgumentException("Potreban je odgovarajuci responderMethod");
             }
 
             foreach (string prefix in prefixes)
@@ -38,17 +34,17 @@ namespace SistemskoProjekat3
                 listener.Prefixes.Add(prefix);
             }
 
-            this.responderObservable = responderMethod;
+            this.fixtureService = new FixtureService();
 
             listener.Start();
         }
 
-        private IObservable<HttpListenerContext> GetContextAsync()
+        private IObservable<HttpListenerContext> GetContextObservableFromTask()
         {
             return Observable.Create<HttpListenerContext>(observer =>
             {
-                
-                Task.Run(async () =>
+
+                Task.Factory.StartNew(async () =>
                 {
                     try
                     {
@@ -56,7 +52,7 @@ namespace SistemskoProjekat3
                         {
                             var context = await listener.GetContextAsync();
 
-                            ThreadPoolScheduler.Instance.Schedule(() =>
+                            TaskPoolScheduler.Default.Schedule(() =>
                             {
                                 try
                                 {
@@ -66,24 +62,23 @@ namespace SistemskoProjekat3
                                 {
                                     observer.OnError(ex);
                                 }
-
                             });
-
                         }
                     }
                     catch (Exception ex)
                     {
                         observer.OnError(ex);
                     }
-                });
+                }, TaskCreationOptions.LongRunning);
                 return Disposable.Empty;
             });
         }
 
+
         public void Run()
         {
             Console.WriteLine("Webserver je pokrenut...");
-            IObservable<HttpListenerContext> obs = this.GetContextAsync();
+            IObservable<HttpListenerContext> obs = this.GetContextObservableFromTask();
 
             this.observableSubscription = obs.Subscribe(
                 context =>
@@ -96,10 +91,11 @@ namespace SistemskoProjekat3
                         return;
                     }
 
-                    this.responderObservable(request).Subscribe(
+                    this.fixtureService.GetFixturesObservable(request)
+                        .Subscribe(
                           fixture =>
                           {
-                              Console.WriteLine("Vracanje podataka za: " + request.RawUrl);
+                              Console.WriteLine("Vracanje podataka za: " + request.RawUrl + " Thread: " + Thread.CurrentThread.ManagedThreadId);
 
                               byte[] buf = Encoding.UTF8.GetBytes(fixture.ToString());
                               response.ContentLength64 = buf.Length;

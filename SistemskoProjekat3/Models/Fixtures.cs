@@ -23,14 +23,14 @@ namespace SistemskoProjekat3.Modules
 
             if (!string.IsNullOrEmpty(ResultInfo))
             {
-                result += $"Result: {ResultInfo}\n";
+                result += $"Result: {ResultInfo}\n\n";
             }
 
             
 
             if (LocalTeamPlayers != null && VisitorTeamPlayers != null)
             {
-                result += "Local team players: \n\n";
+                result += "Home team players: \n\n";
 
                 foreach (var player in LocalTeamPlayers)
                 {
@@ -40,7 +40,7 @@ namespace SistemskoProjekat3.Modules
                         $"Country: {player.Country}\n";
                 }
 
-                result += "\nVisitor team players: \n\n";
+                result += "\nAway team players: \n\n";
 
                 foreach (var player in VisitorTeamPlayers)
                 {

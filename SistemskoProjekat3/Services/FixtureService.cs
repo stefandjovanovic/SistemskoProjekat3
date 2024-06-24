@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using System.Net;
 
-namespace SistemskoProjekat3
+namespace SistemskoProjekat3.Services
 {
     public class FixtureService
     {
@@ -19,27 +19,31 @@ namespace SistemskoProjekat3
         public IObservable<Fixtures> GetFixturesObservable(HttpListenerRequest request)
         {
             string url = request.RawUrl ?? "";
-            Console.WriteLine("Primljen je zahtev: " + url);
+            Console.WriteLine("Primljen je zahtev: " + url + " Thread: " + Thread.CurrentThread.ManagedThreadId);
+            if (url == "/" || url == "")
+            {
+                return Observable.Throw<Fixtures>(new Exception("Nije prosledjen ID utakmice"));
+            }
 
             string id = url.Split('/')[1];
 
-            return FetchFixtureAsync(id);
+            return FetchFixture(id);
         }
 
 
-        public IObservable<Fixtures> FetchFixtureAsync(string matchId)
+        public IObservable<Fixtures> FetchFixture(string matchId)
         {
             var url = $"https://api.sportmonks.com/v3/football/fixtures/{matchId}?api_token={apiKey}&include=lineups.player;lineups.player.country";
 
             return Observable.FromAsync(() => client.GetStringAsync(url))
-                             .SubscribeOn(CurrentThreadScheduler.Instance)
+                             .ObserveOn(CurrentThreadScheduler.Instance)
                              .Select(response =>
                              {
-                                 Console.WriteLine("Primljen odgovor sa API-a");
+                                 Console.WriteLine("Primljen odgovor sa API-a Thread: " + Thread.CurrentThread.ManagedThreadId);
                                  return JObject.Parse(response);
                              })
                              .Select(data => data["data"] ?? throw new Exception("Ne postoji utakmica sa datim ID"))
-                             .Select(fixture => 
+                             .Select(fixture =>
                              {
                                  var allPlayers = ((JArray)fixture["lineups"]!).Select(player => new Player
                                  {

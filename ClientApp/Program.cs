@@ -11,7 +11,7 @@ namespace ClientApp
         static void Main(string[] args)
         {
             // Lista utakmica
-            List<string> fileNames = new List<string> {
+            List<string> fixtures = new List<string> {
                 "19116497",
                 "19116467",
                 "19116470",
@@ -27,13 +27,13 @@ namespace ClientApp
                 "19116485"
             };
 
-            Thread[] threads = new Thread[fileNames.Count];
+            Thread[] threads = new Thread[fixtures.Count];
 
             int i = 0;
-            foreach (string fileName in fileNames)
+            foreach (string fixture in fixtures)
             {
 
-                threads[i] = new Thread(() => SendRequest(fileName));
+                threads[i] = new Thread(() => SendRequest(fixture));
                 threads[i].Start();
                 i++;
             }
@@ -46,9 +46,9 @@ namespace ClientApp
 
         }
 
-        static void SendRequest(string fileName)
+        static void SendRequest(string fixture)
         {
-            string url = $"http://localhost:5050/{fileName}";
+            string url = $"http://localhost:5050/{fixture}";
 
             using (HttpClient client = new HttpClient())
             {
@@ -58,12 +58,12 @@ namespace ClientApp
                     response.EnsureSuccessStatusCode();
 
                     string responseBody = response.Content.ReadAsStringAsync().Result;
-                    Console.WriteLine($"Odgovor servera za fajl {fileName}:");
+                    Console.WriteLine($"Odgovor servera za utakmicu {fixture}:");
                     Console.WriteLine(responseBody);
                 }
                 catch (HttpRequestException ex)
                 {
-                    Console.WriteLine($"Došlo je do greške prilikom slanja zahteva za fajl {fileName}: {ex.Message}");
+                    Console.WriteLine($"Došlo je do greške prilikom slanja zahteva za utakmicu {fixture}: {ex.Message}");
                 }
             }
         }
